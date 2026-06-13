@@ -216,3 +216,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ═══════════════════════════════════════════════════════
+#  Titanic MLOps — project-specific
+# ═══════════════════════════════════════════════════════
+
+# Docker
+docker-compose.override.yml
+
+# TLS certificates (generated at build time)
+services/nginx/certs/
+
+# Model artifacts
+*.joblib
+*.pkl
+
+# Evidently reports
+**/reports/*.html
+
+# DVC local config (contains credentials — never commit)
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache/
+/raw.csv
