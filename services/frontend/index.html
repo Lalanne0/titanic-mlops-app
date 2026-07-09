@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Titanic MLOps -- Would You Survive?</title>
+  <meta name="description"
+    content="An MLOps-powered Titanic survival prediction service with live model management, drift detection, and retraining." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ===================================================
+       Sidebar
+       =================================================== -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <h1><i data-lucide="anchor"></i> <span>Titanic MLOps</span></h1>
+      <p>Survival Prediction</p>
+    </div>
+
+    <!-- Navigation -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Navigate</div>
+      <button class="sidebar-link active" data-view="landing" id="nav-landing">
+        <i data-lucide="home"></i> <span>Home</span>
+      </button>
+      <button class="sidebar-link" data-view="form" id="nav-predict">
+        <i data-lucide="scan-line"></i> <span>Predict</span>
+      </button>
+      <button class="sidebar-link" data-view="health" id="nav-health">
+        <i data-lucide="heart-pulse"></i> <span>Health Check</span>
+      </button>
+    </div>
+
+    <!-- MLOps Actions -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">MLOps Actions</div>
+      <button class="sidebar-link" data-view="train" id="nav-train">
+        <i data-lucide="graduation-cap"></i> <span>Train Model</span>
+      </button>
+      <button class="sidebar-link" data-view="drift" id="nav-drift">
+        <i data-lucide="shuffle"></i> <span>Simulate Drift</span>
+      </button>
+      <button class="sidebar-link" data-view="reset-data" id="nav-reset">
+        <i data-lucide="database-zap"></i> <span>Reset Dataset</span>
+      </button>
+    </div>
+
+    <!-- External tools -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Behind the Scenes</div>
+      <a class="sidebar-link" href="http://localhost:5001" target="_blank" rel="noopener" id="nav-mlflow">
+        <i data-lucide="flask-conical"></i>
+        <span>MLflow</span>
+        <span class="external-badge">ext</span>
+      </a>
+      <a class="sidebar-link" href="http://localhost:9001" target="_blank" rel="noopener" id="nav-minio">
+        <i data-lucide="database"></i>
+        <span>MinIO</span>
+        <span class="external-badge">ext</span>
+      </a>
+      <a class="sidebar-link" href="/monitoring/" target="_blank" rel="noopener" id="nav-evidently">
+        <i data-lucide="activity"></i>
+        <span>Evidently</span>
+        <span class="external-badge">ext</span>
+      </a>
+      <a class="sidebar-link" href="/api/docs" target="_blank" rel="noopener" id="nav-swagger">
+        <i data-lucide="file-code-2"></i>
+        <span>API Docs</span>
+        <span class="external-badge">ext</span>
+      </a>
+    </div>
+
+    <!-- Model badge -->
+    <div class="sidebar-model-badge" id="model-badge">
+      <div class="badge-label">Active Model</div>
+      <div class="badge-value" id="badge-version">Loading...</div>
+      <div class="badge-sub" id="badge-name">titanic-survivor</div>
+    </div>
+  </nav>
+
+  <!-- ===================================================
+       Main Content
+       =================================================== -->
+  <main class="main">
+    <div class="content">
+
+      <!-- == Landing ====================================== -->
+      <section class="view active" id="view-landing">
+        <div class="hero">
+          <div class="hero-icon">
+            <i data-lucide="ship"></i>
+          </div>
+          <h2>Would You Survive the Titanic?</h2>
+          <p>Enter passenger details and let our ML model predict your fate. Then explore the full MLOps pipeline
+            behind the scenes.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" id="btn-start-predict">
+              <i data-lucide="scan-line"></i> Run Prediction
+            </button>
+            <button class="btn btn-secondary" id="btn-start-health">
+              <i data-lucide="heart-pulse"></i> System Health
+            </button>
+          </div>
+        </div>
+
+        <!-- No model warning (hidden by default, shown by JS) -->
+        <div class="card no-model-banner" id="no-model-banner" style="display: none;">
+          <div class="card-header">
+            <i data-lucide="alert-triangle" style="color: var(--amber);"></i>
+            <h3>No model is currently loaded</h3>
+          </div>
+          <div class="card-body">
+            <p>The prediction service is running, but no trained model has been registered yet. You need to train a
+              model before you can make predictions.</p>
+          </div>
+          <div style="margin-top: 14px;">
+            <button class="btn btn-primary" id="btn-banner-train">
+              <i data-lucide="graduation-cap"></i> Train Model
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick info card -->
+        <div class="card" id="landing-info-card" style="margin-top: 12px;">
+          <div class="card-header">
+            <i data-lucide="info" style="color: var(--cyan);"></i>
+            <h3>How It Works</h3>
+          </div>
+          <div class="card-body">
+            <p>This platform demonstrates a complete MLOps lifecycle: model training via MLflow, artifact storage in
+              MinIO, live predictions through a FastAPI service, data drift monitoring with Evidently, and a user
+              feedback loop that triggers retraining. Everything runs in Docker containers behind an Nginx reverse
+              proxy.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Prediction Form ============================== -->
+      <section class="view" id="view-form">
+        <button class="back-link" id="btn-back-form">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <!-- No model inline warning (shown by JS) -->
+        <div class="card no-model-inline" id="no-model-inline" style="display: none; margin-bottom: 20px;">
+          <div class="card-header">
+            <i data-lucide="alert-triangle" style="color: var(--amber);"></i>
+            <h3>Model not loaded</h3>
+          </div>
+          <div class="card-body">
+            <p>No model is available for predictions. Train a model first.</p>
+          </div>
+          <div style="margin-top: 12px;">
+            <button class="btn btn-primary btn-sm" id="btn-inline-train">
+              <i data-lucide="graduation-cap"></i> Train Model
+            </button>
+          </div>
+        </div>
+
+        <div class="form-header">
+          <h2>Passenger Details</h2>
+          <p>Fill in the profile of a Titanic passenger to predict their survival.</p>
+        </div>
+
+        <form id="predict-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="field-sex">Sex</label>
+              <select id="field-sex" required>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="field-age">Age</label>
+              <input type="number" id="field-age" placeholder="e.g. 29" min="0" max="120" step="1" />
+            </div>
+
+            <div class="form-group">
+              <label for="field-pclass">Ticket Class</label>
+              <select id="field-pclass" required>
+                <option value="1">1st Class</option>
+                <option value="2">2nd Class</option>
+                <option value="3" selected>3rd Class</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="field-fare">Fare Paid</label>
+              <input type="number" id="field-fare" placeholder="e.g. 32.50" min="0" step="0.01" required />
+            </div>
+
+            <div class="form-group">
+              <label for="field-sibsp">Siblings / Spouses</label>
+              <input type="number" id="field-sibsp" value="0" min="0" max="10" />
+            </div>
+
+            <div class="form-group">
+              <label for="field-parch">Parents / Children</label>
+              <input type="number" id="field-parch" value="0" min="0" max="10" />
+            </div>
+
+            <div class="form-group full-width">
+              <label for="field-embarked">Port of Embarkation</label>
+              <select id="field-embarked">
+                <option value="S">Southampton</option>
+                <option value="C">Cherbourg</option>
+                <option value="Q">Queenstown</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="btn-predict">
+              <i data-lucide="zap"></i> Predict
+            </button>
+            <button type="reset" class="btn btn-ghost" id="btn-reset">
+              Clear
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- == Result ======================================= -->
+      <section class="view" id="view-result">
+        <button class="back-link" id="btn-back-result">
+          <i data-lucide="arrow-left"></i> New prediction
+        </button>
+
+        <div class="card result-card" id="result-card">
+          <div class="result-icon" id="result-icon"></div>
+          <div class="result-verdict" id="result-verdict"></div>
+          <div class="result-probability" id="result-probability"></div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" id="prob-bar-fill"></div>
+          </div>
+          <div class="result-meta" id="result-meta"></div>
+
+          <div class="result-actions">
+            <button class="btn btn-danger" id="btn-wrong">
+              <i data-lucide="thumbs-down"></i> The prediction was wrong
+            </button>
+            <button class="btn btn-secondary" id="btn-try-again">
+              <i data-lucide="rotate-ccw"></i> Try another
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Feedback confirmation ======================== -->
+      <section class="view" id="view-feedback">
+        <button class="back-link" id="btn-back-feedback">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="check-circle"></i>
+          <h2>Feedback Recorded</h2>
+        </div>
+        <p class="section-subtitle">Thanks for the correction. The dataset has been updated. Here are your next steps:
+        </p>
+
+        <div class="feedback-cards">
+          <div class="card card-clickable feedback-card drift" id="card-drift">
+            <i data-lucide="activity"></i>
+            <div class="fc-content">
+              <h3>Drift may have been detected</h3>
+              <p>User corrections can signal a shift between the training data and real-world inputs. Open the Evidently
+                dashboard to check for data drift.</p>
+              <a class="btn btn-secondary" href="/monitoring/" target="_blank" rel="noopener" id="btn-see-drift">
+                <i data-lucide="external-link"></i> See Dashboard
+              </a>
+            </div>
+          </div>
+
+          <div class="card card-clickable feedback-card retrain" id="card-retrain">
+            <i data-lucide="refresh-cw"></i>
+            <div class="fc-content">
+              <h3>The model might improve with retraining</h3>
+              <p>Your correction has been added to the training set. Retrain the model to incorporate this new data and
+                potentially improve accuracy.</p>
+              <button class="btn btn-primary" id="btn-retrain-feedback">
+                <i data-lucide="play"></i> Retrain Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Train / Retrain view ========================= -->
+      <section class="view" id="view-train">
+        <button class="back-link" id="btn-back-train">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="graduation-cap"></i>
+          <h2>Train Model</h2>
+        </div>
+        <p class="section-subtitle">Run the training pipeline on the current dataset. The trained model will be logged
+          to MLflow and registered for serving.</p>
+
+        <div class="card" id="train-action-card">
+          <div class="card-header">
+            <i data-lucide="info" style="color: var(--cyan);"></i>
+            <h3>What will happen</h3>
+          </div>
+          <div class="card-body">
+            <p>The pipeline will load the working dataset, split it into train/test sets, fit a Logistic Regression model
+              with preprocessing (imputation, scaling, one-hot encoding), log parameters and metrics to MLflow, register
+              the model in the MLflow Model Registry, and save a local fallback. A drift report is also generated after
+              training.</p>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btn-train-run">
+              <i data-lucide="play"></i> Train Now
+            </button>
+            <a class="btn btn-ghost" href="http://localhost:5001" target="_blank" rel="noopener">
+              <i data-lucide="flask-conical"></i> Open MLflow
+            </a>
+          </div>
+        </div>
+
+        <!-- Train results (hidden until training completes) -->
+        <div id="train-results" style="display: none;">
+          <div class="section-title" style="margin-top: 32px;">
+            <i data-lucide="check-circle" style="color: var(--green);"></i>
+            <h2 id="train-results-title">Training Complete</h2>
+          </div>
+          <p class="section-subtitle" id="train-results-subtitle">The model has been updated.</p>
+
+          <div class="metrics-grid" id="train-metrics-grid"></div>
+
+          <div class="card" style="margin-top: 8px;">
+            <div class="card-header">
+              <i data-lucide="info" style="color: var(--cyan);"></i>
+              <h3>Details</h3>
+            </div>
+            <div class="card-body" id="train-details"></div>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <a class="btn btn-secondary" href="http://localhost:5001" target="_blank" rel="noopener">
+              <i data-lucide="flask-conical"></i> View in MLflow
+            </a>
+            <a class="btn btn-secondary" href="/monitoring/" target="_blank" rel="noopener">
+              <i data-lucide="activity"></i> Drift Report
+            </a>
+            <button class="btn btn-primary" id="btn-post-train-predict">
+              <i data-lucide="scan-line"></i> Make a Prediction
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Drift Simulation view ======================== -->
+      <section class="view" id="view-drift">
+        <button class="back-link" id="btn-back-drift">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="shuffle"></i>
+          <h2>Simulate Data Drift</h2>
+        </div>
+        <p class="section-subtitle">Inject synthetic passengers with inverted survival patterns to demonstrate how drift
+          detection works in an MLOps pipeline.</p>
+
+        <div class="card">
+          <div class="card-header">
+            <i data-lucide="info" style="color: var(--cyan);"></i>
+            <h3>What will happen</h3>
+          </div>
+          <div class="card-body">
+            <p>The system will generate synthetic passenger records where survival rules are inverted (e.g., 3rd class
+              passengers with high fares survive, 1st class passengers do not). These records are appended to the
+              working dataset. Then Evidently generates a drift report comparing the corrupted data against the
+              original training baseline. The model is NOT retrained automatically, so you can observe the drift
+              before deciding what to do next.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 4px;">
+          <div class="card-header">
+            <i data-lucide="settings" style="color: var(--amber);"></i>
+            <h3>Configuration</h3>
+          </div>
+          <div class="card-body" style="padding-top: 8px;">
+            <div class="inline-form">
+              <div class="form-group">
+                <label for="field-drift-n-main">Number of samples</label>
+                <input type="number" id="field-drift-n-main" value="500" min="10" max="1000" step="10" />
+              </div>
+              <button class="btn btn-primary" id="btn-drift-run">
+                <i data-lucide="zap"></i> Inject Drift
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drift results (hidden until simulation completes) -->
+        <div id="drift-results" style="display: none;">
+          <div class="section-title" style="margin-top: 32px;">
+            <i data-lucide="alert-triangle" style="color: var(--amber);"></i>
+            <h2>Drift Detected</h2>
+          </div>
+          <p class="section-subtitle" id="drift-results-subtitle">Synthetic data injected. The dataset now contains drifted samples.</p>
+
+          <div class="card" style="margin-top: 8px;">
+            <div class="card-header">
+              <i data-lucide="info" style="color: var(--cyan);"></i>
+              <h3>Injection Details</h3>
+            </div>
+            <div class="card-body" id="drift-details"></div>
+          </div>
+
+          <div class="feedback-cards" style="margin-top: 16px;">
+            <div class="card card-clickable feedback-card drift">
+              <i data-lucide="activity"></i>
+              <div class="fc-content">
+                <h3>View the drift report</h3>
+                <p>Evidently has compared the current (corrupted) dataset against the original training baseline. Open the dashboard to see which features drifted and by how much.</p>
+                <a class="btn btn-primary" href="/monitoring/" target="_blank" rel="noopener" id="btn-drift-report">
+                  <i data-lucide="external-link"></i> Open Drift Report
+                </a>
+              </div>
+            </div>
+
+            <div class="card card-clickable feedback-card retrain">
+              <i data-lucide="refresh-cw"></i>
+              <div class="fc-content">
+                <h3>Retrain the model on the drifted data</h3>
+                <p>If you retrain now, the model will learn from the corrupted data. This demonstrates how drift degrades model quality over time.</p>
+                <button class="btn btn-secondary" id="btn-drift-retrain">
+                  <i data-lucide="play"></i> Retrain Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <a class="btn btn-ghost" href="http://localhost:5001" target="_blank" rel="noopener">
+              <i data-lucide="flask-conical"></i> Open MLflow
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Reset Dataset view =========================== -->
+      <section class="view" id="view-reset-data">
+        <button class="back-link" id="btn-back-reset">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="database-zap"></i>
+          <h2>Reset Dataset</h2>
+        </div>
+        <p class="section-subtitle">Restore the working dataset to its original state, removing any feedback entries or
+          injected drift samples.</p>
+
+        <div class="card">
+          <div class="card-header">
+            <i data-lucide="alert-triangle" style="color: var(--amber);"></i>
+            <h3>This action is destructive</h3>
+          </div>
+          <div class="card-body">
+            <p>The current working dataset (including all user feedback and drift injections) will be replaced with the
+              original bundled dataset. The model will not be affected until you retrain.</p>
+          </div>
+          <div style="margin-top: 16px;">
+            <button class="btn btn-danger" id="btn-reset-data-run">
+              <i data-lucide="trash-2"></i> Reset to Original
+            </button>
+          </div>
+        </div>
+
+        <div id="reset-result" style="display: none; margin-top: 16px;">
+          <div class="card">
+            <div class="card-header">
+              <i data-lucide="check-circle" style="color: var(--green);"></i>
+              <h3 id="reset-result-title">Dataset Reset</h3>
+            </div>
+            <div class="card-body" id="reset-result-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- == Health Check ================================= -->
+      <section class="view" id="view-health">
+        <button class="back-link" id="btn-back-health">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="heart-pulse"></i>
+          <h2>System Health</h2>
+        </div>
+        <p class="section-subtitle">Status of all services and the loaded model.</p>
+
+        <div class="health-grid" id="health-grid">
+          <!-- filled by JS -->
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button class="btn btn-secondary" id="btn-refresh-health">
+            <i data-lucide="refresh-cw"></i> Refresh
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- == Loading overlay ================================ -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="lo-spinner"></div>
+    <div class="lo-text" id="loading-text">Processing...</div>
+  </div>
+
+  <!-- == Toast container ================================ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- == Scripts ======================================== -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

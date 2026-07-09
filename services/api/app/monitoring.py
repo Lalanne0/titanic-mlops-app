@@ -1,4 +1,4 @@
-"""Evidently AI monitoring — generate data drift & performance reports."""
+"""Evidently AI monitoring - generate data drift & performance reports."""
 
 import logging
 import os

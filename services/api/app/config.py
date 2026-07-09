@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
     MLFLOW_S3_ENDPOINT_URL: str = "http://minio:9000"
     AWS_ACCESS_KEY_ID: str = "minioadmin"
-    AWS_SECRET_ACCESS_KEY: str = "minioadmin_secret_2024"
+    AWS_SECRET_ACCESS_KEY: str = "minioadmin_secret_1234"
 
     # Model
     MODEL_NAME: str = "titanic-survivor"

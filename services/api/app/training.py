@@ -129,6 +129,7 @@ def train_model(data_path: str | None = None) -> dict:
             sk_model=pipeline,
             artifact_path="model",
             registered_model_name=settings.MODEL_NAME,
+            skops_trusted_types=["numpy.dtype"],
         )
 
         run_id = run.info.run_id

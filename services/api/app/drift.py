@@ -1,4 +1,4 @@
-"""Data drift simulation — inject synthetic passengers with inverted patterns."""
+"""Data drift simulation - inject synthetic passengers with inverted patterns."""
 
 import logging
 

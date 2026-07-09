@@ -218,7 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # ═══════════════════════════════════════════════════════
-#  Titanic MLOps — project-specific
+#  Titanic MLOps - project-specific
 # ═══════════════════════════════════════════════════════
 
 # Docker
@@ -234,7 +234,7 @@ services/nginx/certs/
 # Evidently reports
 **/reports/*.html
 
-# DVC local config (contains credentials — never commit)
+# DVC local config (contains credentials - never commit)
 .dvc/config.local
 .dvc/tmp/
 .dvc/cache/

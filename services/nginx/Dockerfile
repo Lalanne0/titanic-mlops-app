@@ -12,6 +12,7 @@ RUN apk add --no-cache openssl && \
         -subj "/C=FR/ST=IDF/L=Paris/O=TitanicMLOps/CN=${NGINX_HOST}" \
         2>/dev/null
 
+COPY services/frontend/ /usr/share/nginx/html/
 COPY services/nginx/nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80 443

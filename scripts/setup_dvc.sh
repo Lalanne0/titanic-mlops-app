@@ -22,9 +22,16 @@ dvc remote add -f origin https://dagshub.com/Lalanne0/titanic-mlops-app.dvc
 echo "DagsHub remote 'origin' configured"
 
 # --- Set credentials (stored in .dvc/config.local - gitignored) ---
+DAGSHUB_USER="${DAGSHUB_USER:-Lalanne0}"
+if [ -z "${DAGSHUB_TOKEN}" ]; then
+    echo "Error: DAGSHUB_TOKEN environment variable is not set."
+    echo "Get your token from https://dagshub.com/user/settings/tokens"
+    echo "Then run: export DAGSHUB_TOKEN=<your-token>"
+    exit 1
+fi
 dvc remote modify origin --local auth basic
-dvc remote modify origin --local user Lalanne0
-dvc remote modify origin --local password 239aa8b3d33cfe48eb027e0db1b42e1ac612df34
+dvc remote modify origin --local user "${DAGSHUB_USER}"
+dvc remote modify origin --local password "${DAGSHUB_TOKEN}"
 echo "Credentials stored in .dvc/config.local"
 
 # --- Track the dataset ---

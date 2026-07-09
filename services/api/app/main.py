@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI):
     # 2) Wait for MLflow
     await _wait_for_mlflow()
 
-    # 3) Load model — auto-train if nothing is registered yet
+    # 3) Load model - auto-train if nothing is registered yet
     try:
         model_manager.load_model()
         logger.info("Model loaded successfully (version %s)", model_manager.model_version)
@@ -131,7 +131,7 @@ app.add_middleware(
 # --- Health ---
 @app.get("/health", tags=["ops"])
 def health():
-    """Liveness probe — always returns 200 if the process is up."""
+    """Liveness probe - always returns 200 if the process is up."""
     return {
         "status": "healthy",
         "model_loaded": model_manager.is_loaded,
@@ -149,7 +149,7 @@ def health():
 def predict(passenger: PassengerInput):
     """Predict whether a passenger would survive the Titanic."""
     if not model_manager.is_loaded:
-        raise HTTPException(status_code=503, detail="Model not loaded yet — call POST /retrain first.")
+        raise HTTPException(status_code=503, detail="Model not loaded yet - call POST /retrain first.")
 
     survived, probability = model_manager.predict(passenger)
 
@@ -168,7 +168,7 @@ def predict(passenger: PassengerInput):
 # as the training set for future model iterations.
 @app.post("/feedback", tags=["feedback"])
 def submit_feedback(feedback: FeedbackInput):
-    """Record user feedback — appends a corrected row to the dataset.
+    """Record user feedback - appends a corrected row to the dataset.
 
     Use this when the model prediction was wrong:
     'Got it wrong? Let us know!'
@@ -230,23 +230,26 @@ def retrain():
 # Data drift occurs when the statistical properties of features change over time.
 # To demonstrate how monitoring tools detect this, this endpoint injects synthetically modified
 # passenger profiles (e.g. highly anomalous age/fare distributions and inverted survival rules)
-# into the active dataset, retrains the model, and runs a data drift report via Evidently AI.
+# into the active dataset and generates a drift report. Retraining is intentionally left as a
+# separate step so the user can first observe the drift in the Evidently dashboard before
+# deciding to retrain.
 @app.post("/simulate-drift", tags=["drift"])
 def trigger_drift_simulation(
     n_samples: int = Query(100, ge=10, le=1000, description="Number of drifted samples to inject"),
 ):
-    """Inject synthetic data with inverted survival patterns, then auto-retrain.
+    """Inject synthetic data with inverted survival patterns and generate a drift report.
 
     This endpoint:
     1. Generates *n_samples* passengers with inverted survival logic
     2. Appends them to the dataset
-    3. Retrains the model (and logs to MLflow)
-    4. Generates an Evidently drift report
+    3. Generates an Evidently drift report (comparing against the training baseline)
+
+    Retraining is NOT triggered automatically so you can observe the drift first.
+    Call POST /retrain afterwards to update the model.
     """
     drift_result = simulate_drift(n_samples=n_samples)
-    train_result = train_model()
-    model_manager.load_model()
 
+    report_name = None
     try:
         report_name = generate_drift_report()
     except Exception as exc:
@@ -254,12 +257,6 @@ def trigger_drift_simulation(
 
     return {
         "drift_injection": drift_result,
-        "retrain_result": {
-            "accuracy": train_result["accuracy"],
-            "f1_score": train_result["f1_score"],
-            "model_version": train_result["model_version"],
-            "run_id": train_result["run_id"],
-        },
         "drift_report": report_name,
     }
 
@@ -299,3 +296,32 @@ def dataset_info():
             "missing": int(df["Age"].isna().sum()),
         },
     }
+
+
+# --- Reset dataset ---
+@app.post("/reset-data", tags=["ops"])
+def reset_data():
+    """Restore the working dataset to its original bundled state.
+
+    This removes all user feedback and injected drift samples.
+    The model remains loaded until you retrain.
+    """
+    original_path = "/app/raw_original.csv"
+    if not os.path.exists(original_path):
+        raise HTTPException(status_code=500, detail="Original dataset not found in container")
+
+    shutil.copy(original_path, settings.DATA_PATH)
+
+    # Remove reference.csv so it gets regenerated on next train
+    reference_path = os.path.join(os.path.dirname(settings.DATA_PATH), "reference.csv")
+    if os.path.exists(reference_path):
+        os.remove(reference_path)
+
+    df = pd.read_csv(settings.DATA_PATH)
+
+    return {
+        "status": "dataset_reset",
+        "message": "Working dataset restored to original. Retrain the model to use the clean data.",
+        "total_rows": len(df),
+    }
+
