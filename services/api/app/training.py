@@ -76,9 +76,7 @@ def train_model(data_path: str | None = None) -> dict:
     X = df[FEATURE_COLS]
     y = df[TARGET]
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # --- Build pipeline ---
     pipeline = Pipeline(

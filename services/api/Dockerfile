@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services/api/app/ ./app/
 
 # Bundle the dataset (copied to volume on first startup)
-COPY raw.csv /app/raw_original.csv
+COPY data/raw.csv /app/raw_original.csv
 
 EXPOSE 8000
 

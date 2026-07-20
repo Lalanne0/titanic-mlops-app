@@ -1,7 +1,5 @@
 """Pydantic schemas for API request/response models."""
 
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -15,13 +13,11 @@ class PassengerInput(BaseModel):
 
     Pclass: int = Field(..., ge=1, le=3, description="Ticket class: 1=1st, 2=2nd, 3=3rd")
     Sex: str = Field(..., pattern="^(male|female)$", description="male or female")
-    Age: Optional[float] = Field(None, ge=0, le=120, description="Age in years")
+    Age: float | None = Field(None, ge=0, le=120, description="Age in years")
     SibSp: int = Field(0, ge=0, description="Number of siblings/spouses aboard")
     Parch: int = Field(0, ge=0, description="Number of parents/children aboard")
     Fare: float = Field(..., ge=0, description="Passenger fare")
-    Embarked: Optional[str] = Field(
-        "S", pattern="^[SCQ]$", description="Port: S=Southampton, C=Cherbourg, Q=Queenstown"
-    )
+    Embarked: str | None = Field("S", pattern="^[SCQ]$", description="Port: S=Southampton, C=Cherbourg, Q=Queenstown")
 
     model_config = {
         "json_schema_extra": {
@@ -66,4 +62,4 @@ class RetrainResponse(BaseModel):
     model_version: str
     run_id: str
     n_samples: int
-    drift_report: Optional[str] = None
+    drift_report: str | None = None

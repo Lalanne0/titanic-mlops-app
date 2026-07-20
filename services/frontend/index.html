@@ -33,6 +33,9 @@
       <button class="sidebar-link" data-view="health" id="nav-health">
         <i data-lucide="heart-pulse"></i> <span>Health Check</span>
       </button>
+      <button class="sidebar-link" data-view="copilot" id="nav-copilot">
+        <i data-lucide="message-square"></i> <span>Copilot</span>
+      </button>
     </div>
 
     <!-- MLOps Actions -->
@@ -511,6 +514,46 @@
           <button class="btn btn-secondary" id="btn-refresh-health">
             <i data-lucide="refresh-cw"></i> Refresh
           </button>
+        </div>
+      </section>
+
+      <!-- == Copilot (LLMOps layer) ======================= -->
+      <section class="view" id="view-copilot">
+        <button class="back-link" id="btn-back-copilot">
+          <i data-lucide="arrow-left"></i> Back to home
+        </button>
+
+        <div class="section-title">
+          <i data-lucide="message-square"></i>
+          <h2>Titanic Decision Copilot</h2>
+        </div>
+        <p class="section-subtitle">Ask questions in natural language. The assistant calls the prediction model as a tool and grounds its answers in the model card.</p>
+
+        <div class="card copilot-container">
+          <div class="copilot-messages" id="copilot-messages">
+            <div class="copilot-msg assistant">
+              <div class="msg-role">Copilot</div>
+              <div class="msg-text">Ask me anything about Titanic survival predictions. For example: "Would a 29-year-old woman travelling first class survive?"</div>
+            </div>
+          </div>
+
+          <form class="copilot-input" id="copilot-form">
+            <input type="text" id="copilot-input" placeholder="Ask about a passenger..." autocomplete="off" />
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="send"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Trace panel (shown after first message) -->
+        <div id="copilot-trace" style="display: none; margin-top: 16px;">
+          <div class="card">
+            <div class="card-header">
+              <i data-lucide="search" style="color: var(--cyan);"></i>
+              <h3>Last Trace</h3>
+            </div>
+            <div class="card-body" id="copilot-trace-body"></div>
+          </div>
         </div>
       </section>
 

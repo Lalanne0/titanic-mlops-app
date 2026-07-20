@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 from evidently import Report
@@ -44,7 +44,7 @@ def generate_drift_report() -> str:
 
     # Save to shared reports volume
     os.makedirs(settings.REPORTS_PATH, exist_ok=True)
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     filename = f"drift_report_{timestamp}.html"
     filepath = os.path.join(settings.REPORTS_PATH, filename)
     snapshot.save_html(filepath)

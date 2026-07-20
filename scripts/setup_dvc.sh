@@ -35,19 +35,19 @@ dvc remote modify origin --local password "${DAGSHUB_TOKEN}"
 echo "Credentials stored in .dvc/config.local"
 
 # --- Track the dataset ---
-if [ ! -f "raw.csv.dvc" ]; then
-    dvc add raw.csv
-    echo "raw.csv tracked by DVC"
+if [ ! -f "data/raw.csv.dvc" ]; then
+    dvc add data/raw.csv
+    echo "data/raw.csv tracked by DVC"
 else
-    echo "raw.csv already tracked by DVC"
+    echo "data/raw.csv already tracked by DVC"
 fi
 
 echo ""
-echo "DVC setup complete!"
+echo "DVC setup complete."
 echo ""
 echo "   Next steps:"
 echo "   1. dvc push -r origin        Push data to DagsHub"
-echo "   2. git add raw.csv.dvc .dvc  Commit DVC tracking files"
+echo "   2. git add data/raw.csv.dvc .dvc  Commit DVC tracking files"
 echo "   3. git commit -m 'Add DVC tracking'"
 echo ""
 echo "   To pull data on another machine:"

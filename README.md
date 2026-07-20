@@ -1,28 +1,38 @@
 # Titanic MLOps App
 
-> This repo showcases an implementation of MLOps principles on the Titanic dataset. It features a prediction service and tools for monitoring model performance and data drift.
-
-![Demo video](https://assets-datascientest.s3.eu-west-1.amazonaws.com/MLOPS/intro-mlops/demo-titanic-mlops.mp4)
+> **Would you survive the Titanic?** -- An MLOps-powered prediction service showcasing the full lifecycle of a machine learning project in production, with an optional LLMOps interaction layer.
 
 ## Architecture
 
 ```
-+-----------------------------------------------------+
-|                   Docker Compose                     |
-|                                                      |
-|  +----------+   +----------+   +----------------+   |
-|  |  Nginx   |-->| FastAPI  |-->|  MLflow Server |   |
-|  |  (HTTPS) |   |  (API)   |   |  (tracking)    |   |
-|  +----------+   +----------+   +-------+--------+   |
-|       |              |                 |             |
-|       |              |         +-------+--------+   |
-|       v              v         |   PostgreSQL   |   |
-|  +----------+   +----------+  |   (metadata)   |   |
-|  |Monitoring|   |  MinIO   |  +----------------+   |
-|  |(Evidently)|  |(artifacts)|                       |
-|  +----------+   +----------+                        |
-+-----------------------------------------------------+
-         Dataset versioned with DVC + DagsHub
++--------------------------------------------------------------+
+|                       Docker Compose                          |
+|                                                               |
+|  +-----------+    +------------------+    +----------------+  |
+|  |   Nginx   |--->|     FastAPI      |--->|  MLflow Server |  |
+|  |  (HTTPS)  |    |  (API + Chat)    |    |  (tracking)    |  |
+|  +-----------+    +--------+---------+    +-------+--------+  |
+|       |                    |                      |           |
+|       |           +--------+--------+     +-------+--------+  |
+|       v           |                 |     |   PostgreSQL   |  |
+|  +-----------+    |  LLM Provider   |     |   (metadata)   |  |
+|  | Frontend  |    |  (optional,     |     +----------------+  |
+|  | (SPA)     |    |   via API key)  |                         |
+|  +-----------+    +-----------------+     +----------------+  |
+|       |                                   |     MinIO      |  |
+|  +-----------+                            |  (artifacts)   |  |
+|  |Monitoring |                            +----------------+  |
+|  |(Evidently)|                                                |
+|  +-----------+                                                |
++--------------------------------------------------------------+
+             Dataset versioned with DVC + DagsHub
+```
+
+**Two operational loops in one demo:**
+
+```
+MLOps:   data / model quality -> drift -> feedback -> retraining
+LLMOps:  prompt / tool use / context quality -> traces and evaluation -> safer responses
 ```
 
 ## Service URLs
@@ -31,7 +41,7 @@ Once the stack is running, the following services are available:
 
 | Service          | URL                              | Description                          |
 |------------------|----------------------------------|--------------------------------------|
-| **Frontend**     | https://localhost                 | Web UI for predictions and MLOps     |
+| **Frontend**     | https://localhost                 | Web UI for predictions, Copilot, and MLOps |
 | **API Docs**     | https://localhost/api/docs        | Swagger / OpenAPI documentation      |
 | **MLflow**       | http://localhost:5001             | Experiment tracking and model registry (click "Experiments" in the sidebar) |
 | **MinIO**        | http://localhost:9001             | S3-compatible artifact store console |
@@ -102,6 +112,8 @@ make up
 | POST   | `/api/reset-data`     | Restore the original dataset                 |
 | GET    | `/api/model-info`     | Current model version and metadata           |
 | GET    | `/api/dataset-info`   | Dataset statistics                           |
+| POST   | `/api/chat`           | Send a message to the Copilot (LLMOps layer) |
+| GET    | `/api/traces`         | View recent LLM interaction traces           |
 
 ### Example: Predict
 
@@ -117,6 +129,14 @@ curl -sk -X POST https://localhost/api/predict \
     "Fare": 100,
     "Embarked": "S"
   }'
+```
+
+### Example: Chat (Copilot)
+
+```bash
+curl -sk -X POST https://localhost/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Would a 29-year-old woman in first class survive?"}'
 ```
 
 ## Make Commands
@@ -136,21 +156,63 @@ curl -sk -X POST https://localhost/api/predict \
 | `make dvc-init`    | Initialize DVC with DagsHub remote         |
 | `make dvc-push`    | Push dataset to DagsHub                    |
 
+## MLOps vs LLMOps in This Demo
+
+This application demonstrates two independent operational loops on the same product:
+
+**MLOps loop** (the existing classifier):
+- Train a logistic regression on Titanic data, versioned in MLflow
+- Serve predictions through a deterministic API endpoint
+- Monitor for data drift with Evidently
+- Collect user feedback and retrain on updated data
+- Track every training run's metrics, parameters, and model artifacts
+
+**LLMOps loop** (the Copilot layer):
+- A language model turns natural-language questions into structured tool calls to the prediction API
+- The LLM never generates predictions itself. It calls `predict_survival` as a tool, keeping the sklearn model as the source of truth
+- A model card provides grounding context so the LLM communicates limitations accurately
+- Each interaction is traced: prompt, model identifier, tool calls, latency, token usage, and estimated cost
+- An evaluation set with representative cases tests correct tool invocation, grounded predictions, and safety (no causal claims, no fabricated numbers)
+
+The key difference: MLOps optimizes **model quality** (accuracy, drift, retraining). LLMOps optimizes **interaction quality** (correct tool use, grounded answers, safe responses, cost efficiency).
+
+### Copilot Configuration
+
+The Copilot uses the OpenAI-compatible API format. Set these in your `.env`:
+
+| Variable       | Required | Default       | Description |
+|----------------|----------|---------------|-------------|
+| `LLM_API_KEY`  | No       | (empty)       | API key. When empty, the Copilot runs in mock mode. |
+| `LLM_MODEL`    | No       | `gpt-4o-mini` | Model identifier. |
+| `LLM_BASE_URL` | No       | (OpenAI default) | Custom base URL for compatible providers (Ollama, Azure, etc.). |
+
+Mock mode works without an API key and is used in development and CI. It calls the prediction tool with default values to verify the pipeline works end to end.
+
 ## DVC Dataset Versioning
 
-```bash
-# Set your DagsHub token first
-export DAGSHUB_TOKEN=<your-dagshub-token>
+The dataset (`data/raw.csv`) is tracked with [DVC](https://dvc.org/) and stored on [DagsHub](https://dagshub.com/).
 
-# Initialize DVC + DagsHub remote
+### Setup
+
+```bash
+# 1. Get a DagsHub access token from https://dagshub.com/user/settings/tokens
+
+# 2. Set the token as an environment variable
+export DAGSHUB_TOKEN=<your-token>
+
+# 3. Initialize DVC with the DagsHub remote
 make dvc-init
 
-# Push dataset to remote
+# 4. Push the dataset
 make dvc-push
-
-# Pull dataset (on another machine)
-make dvc-pull
 ```
+
+### How it works
+
+- `data/raw.csv` is the actual dataset file (gitignored)
+- `data/raw.csv.dvc` is a small pointer file tracked by git (contains the file hash)
+- DVC stores the full dataset on DagsHub's S3-compatible storage
+- On another machine, run `make dvc-pull` to download the dataset
 
 ## MLOps Workflow
 
@@ -161,6 +223,34 @@ make dvc-pull
 5. **Drift** -- `POST /api/simulate-drift` injects drifted data and generates an Evidently report (no auto-retrain)
 6. **Monitor** -- Open the Evidently dashboard or the generated report to inspect detected drift
 7. **Reset** -- `POST /api/reset-data` restores the dataset to its original state
+8. **Chat** -- `POST /api/chat` sends a natural-language query to the Copilot (optional LLMOps layer)
+
+## LLM Evaluation
+
+A small evaluation suite in `eval/` tests the Copilot against representative cases:
+
+```bash
+# Run against the live API (requires the stack to be running)
+python eval/run_eval.py --base-url https://localhost
+```
+
+The script checks: correct tool invocation, grounded predictions, model-card limitation mentions, causal claim refusal, and historical-demo disclaimers.
+
+## Development
+
+```bash
+# Install dev dependencies (ruff, pytest, httpx)
+uv sync --extra dev
+
+# Lint
+uv run ruff check services/ tests/
+
+# Format check
+uv run ruff format --check services/ tests/
+
+# Run tests
+uv run pytest tests/ -v
+```
 
 ## Environment Variables
 
@@ -171,6 +261,8 @@ See [`.env.example`](.env.example) for all required configuration.
 - **API**: FastAPI + scikit-learn + Uvicorn
 - **Tracking**: MLflow + PostgreSQL + MinIO
 - **Monitoring**: Evidently AI
+- **Copilot**: OpenAI-compatible LLM (optional)
 - **Proxy**: Nginx (self-signed HTTPS)
 - **Data versioning**: DVC + DagsHub
+- **CI**: GitHub Actions + Ruff + pytest
 - **Orchestration**: Docker Compose

@@ -68,7 +68,7 @@ def simulate_drift(n_samples: int = 100) -> dict:
                 "Embarked": rng.choice(["S", "C", "Q"]),
             }
         )
- 
+
     drift_df = pd.DataFrame(rows)
     drift_df.to_csv(settings.DATA_PATH, mode="a", header=False, index=False)
 

@@ -59,7 +59,7 @@ def get_report(filename: str):
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail=f"Report '{filename}' not found")
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
     return HTMLResponse(content=content)

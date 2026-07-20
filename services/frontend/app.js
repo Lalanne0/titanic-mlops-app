@@ -498,6 +498,89 @@
   }
 
   // =========================================================
+  //  Copilot (LLMOps layer)
+  // =========================================================
+  function appendCopilotMsg(role, html) {
+    const container = $("#copilot-messages");
+    const div = document.createElement("div");
+    div.className = `copilot-msg ${role}`;
+    div.innerHTML = `<div class="msg-role">${role === "user" ? "You" : "Copilot"}</div><div class="msg-text">${html}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function handleCopilotSubmit(e) {
+    e.preventDefault();
+    const input = $("#copilot-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    appendCopilotMsg("user", message);
+    input.value = "";
+
+    // Show a "thinking" indicator
+    const thinkingId = "copilot-thinking-" + Date.now();
+    appendCopilotMsg("assistant", `<span id="${thinkingId}" class="copilot-thinking">Thinking...</span>`);
+
+    try {
+      const result = await apiFetch("/chat", {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      });
+
+      // Remove thinking indicator
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.closest(".copilot-msg").remove();
+
+      // Build reply HTML
+      let replyHtml = (result.reply || "").replace(/\n/g, "<br/>");
+
+      // If there was a prediction, show a card
+      if (result.prediction) {
+        const p = result.prediction;
+        const survClass = p.survived ? "survived" : "perished";
+        const survText = p.survived ? "Survived" : "Did not survive";
+        const pct = (p.probability * 100).toFixed(1);
+        replyHtml += `
+          <div class="copilot-prediction ${survClass}">
+            <strong>${survText}</strong> (${pct}% probability)
+            <span class="cp-version">Model v${result.model_version || "?"}</span>
+          </div>`;
+      }
+
+      // Show tool calls if any
+      if (result.tool_calls && result.tool_calls.length > 0) {
+        const tc = result.tool_calls[0];
+        replyHtml += `<div class="copilot-tool-call">
+          <span class="tc-label">Tool call:</span> ${tc.tool_name}(${JSON.stringify(tc.arguments)})
+        </div>`;
+      }
+
+      appendCopilotMsg("assistant", replyHtml);
+
+      // Update trace panel
+      if (result.trace_id) {
+        const traceEl = $("#copilot-trace");
+        traceEl.style.display = "block";
+        const traceBody = $("#copilot-trace-body");
+        const lines = [];
+        lines.push(`Trace ID: <code>${result.trace_id}</code>`);
+        if (result.model_version) lines.push(`Model version: <strong>v${result.model_version}</strong>`);
+        if (result.tool_calls && result.tool_calls.length > 0) {
+          lines.push(`Tool calls: ${result.tool_calls.length}`);
+        }
+        traceBody.innerHTML = `<p>${lines.join("<br/>")}</p>`;
+      }
+
+      window.lucide && window.lucide.createIcons();
+    } catch (err) {
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.closest(".copilot-msg").remove();
+      appendCopilotMsg("assistant", `Error: ${err.message}`);
+    }
+  }
+
+  // =========================================================
   //  Event Binding
   // =========================================================
   function init() {
@@ -564,6 +647,13 @@
 
     // Health refresh
     $("#btn-refresh-health").addEventListener("click", loadHealth);
+
+    // Copilot
+    const backCopilot = $("#btn-back-copilot");
+    if (backCopilot) backCopilot.addEventListener("click", () => showView("landing"));
+
+    const copilotForm = $("#copilot-form");
+    if (copilotForm) copilotForm.addEventListener("submit", handleCopilotSubmit);
 
     // Init Lucide icons
     window.lucide && window.lucide.createIcons();

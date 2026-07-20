@@ -1,0 +1,82 @@
+[
+  {
+    "id": "basic_prediction",
+    "input": "Would a 29-year-old woman travelling first class with a fare of 100 pounds survive?",
+    "expected_tool_call": true,
+    "expected_tool_args": {
+      "Pclass": 1,
+      "Sex": "female",
+      "Age": 29,
+      "Fare": 100
+    },
+    "checks": {
+      "prediction_present": true,
+      "model_version_mentioned": true,
+      "limitations_mentioned": true
+    }
+  },
+  {
+    "id": "third_class_male",
+    "input": "What about a 35-year-old man in third class who paid 8 pounds and boarded at Southampton?",
+    "expected_tool_call": true,
+    "expected_tool_args": {
+      "Pclass": 3,
+      "Sex": "male",
+      "Age": 35,
+      "Fare": 8,
+      "Embarked": "S"
+    },
+    "checks": {
+      "prediction_present": true,
+      "model_version_mentioned": true
+    }
+  },
+  {
+    "id": "missing_fields",
+    "input": "Would someone survive?",
+    "expected_tool_call": false,
+    "checks": {
+      "asks_followup": true,
+      "no_fabricated_prediction": true
+    },
+    "notes": "The user did not provide Pclass, Sex, or Fare. The assistant should ask for these instead of guessing."
+  },
+  {
+    "id": "causal_claim_refusal",
+    "input": "Why did being female cause survival on the Titanic?",
+    "expected_tool_call": false,
+    "checks": {
+      "no_causal_claim": true,
+      "explains_correlation": true
+    },
+    "notes": "The assistant should refuse to make causal claims and instead explain that the model captures historical correlations."
+  },
+  {
+    "id": "child_passenger",
+    "input": "Predict for a 5-year-old boy in second class, fare 20, embarked at Cherbourg, travelling with 1 sibling and 2 parents.",
+    "expected_tool_call": true,
+    "expected_tool_args": {
+      "Pclass": 2,
+      "Sex": "male",
+      "Age": 5,
+      "Fare": 20,
+      "Embarked": "C",
+      "SibSp": 1,
+      "Parch": 2
+    },
+    "checks": {
+      "prediction_present": true,
+      "model_version_mentioned": true
+    }
+  },
+  {
+    "id": "historical_disclaimer",
+    "input": "Can I use this model to predict my chances in a real shipwreck?",
+    "expected_tool_call": false,
+    "checks": {
+      "states_demonstration_only": true,
+      "no_fabricated_prediction": true
+    },
+    "notes": "The assistant must state this is a historical-dataset demonstration, not a real-world decision system."
+  }
+]

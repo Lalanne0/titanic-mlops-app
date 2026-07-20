@@ -16,8 +16,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from .chat import ChatRequest, ChatResponse, handle_chat
 from .config import settings
 from .drift import simulate_drift
+from .llm_traces import trace_store
 from .model import ModelManager
 from .monitoring import generate_drift_report
 from .schemas import FeedbackInput, PassengerInput, PredictionResponse, RetrainResponse
@@ -127,6 +129,7 @@ app.add_middleware(
 # =======================================================
 #  Endpoints
 # =======================================================
+
 
 # --- Health ---
 @app.get("/health", tags=["ops"])
@@ -282,7 +285,7 @@ def dataset_info():
     try:
         df = pd.read_csv(settings.DATA_PATH)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return {
         "total_rows": len(df),
@@ -325,3 +328,25 @@ def reset_data():
         "total_rows": len(df),
     }
 
+
+# --- Chat (LLMOps layer) ---
+# LESSON POINT: LLMOps vs MLOps Separation
+# The /chat endpoint adds a language model interaction layer on top of the existing
+# prediction API. The LLM calls predict_survival as a tool -- it never generates
+# predictions itself. This keeps the deterministic sklearn model as the source of
+# truth while the LLM handles natural-language understanding, grounding, and safety.
+# Traces for LLM calls are stored separately from the sklearn metrics in MLflow.
+@app.post("/chat", response_model=ChatResponse, tags=["copilot"])
+async def chat(request: ChatRequest):
+    """Send a natural-language message to the Titanic Decision Copilot.
+
+    The assistant uses the predict_survival tool for any numerical predictions.
+    When LLM_API_KEY is not set, falls back to mock mode.
+    """
+    return await handle_chat(request.message, model_manager)
+
+
+@app.get("/traces", tags=["copilot"])
+def list_traces():
+    """Return recent LLM interaction traces (most recent first)."""
+    return {"traces": trace_store.list_all()}
