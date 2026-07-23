@@ -29,6 +29,8 @@ up:
 	@echo "   POST /api/reset-data      Restore original dataset"
 	@echo "   GET  /api/model-info      Current model version"
 	@echo "   GET  /api/dataset-info    Dataset statistics"
+	@echo "   POST /api/chat            Chat with the Copilot"
+	@echo "   GET  /api/traces          Recent LLM interaction traces"
 	@echo ""
 	@echo "Note: HTTPS uses self-signed certs. Accept the browser warning or use curl -k."
 

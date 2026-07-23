@@ -178,13 +178,13 @@ The key difference: MLOps optimizes **model quality** (accuracy, drift, retraini
 
 ### Copilot Configuration
 
-The Copilot uses the OpenAI-compatible API format. Set these in your `.env`:
+The Copilot uses the OpenAI-compatible API format. By default it points to [Groq](https://groq.com/) (free tier available). Set these in your `.env`:
 
 | Variable       | Required | Default       | Description |
 |----------------|----------|---------------|-------------|
-| `LLM_API_KEY`  | No       | (empty)       | API key. When empty, the Copilot runs in mock mode. |
-| `LLM_MODEL`    | No       | `gpt-4o-mini` | Model identifier. |
-| `LLM_BASE_URL` | No       | (OpenAI default) | Custom base URL for compatible providers (Ollama, Azure, etc.). |
+| `LLM_API_KEY`  | No       | (empty)       | API key. When empty, the Copilot runs in mock mode. Get a free key at https://console.groq.com |
+| `LLM_MODEL`    | No       | `llama-3.3-70b-versatile` | Model identifier. |
+| `LLM_BASE_URL` | No       | `https://api.groq.com/openai/v1` | Base URL. Change to use a different OpenAI-compatible provider. |
 
 Mock mode works without an API key and is used in development and CI. It calls the prediction tool with default values to verify the pipeline works end to end.
 

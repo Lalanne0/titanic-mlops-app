@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 # When LLM_API_KEY is not set, the chat endpoint falls back to a mock mode that
 # simulates tool calls for development and CI without incurring API costs.
 
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL")  # None = use default OpenAI base
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
 
 
 # ---------------------------------------------------------------------------

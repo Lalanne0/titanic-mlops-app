@@ -107,9 +107,9 @@ services:
       DATA_PATH: ${DATA_PATH}
       MODEL_PATH: ${MODEL_PATH}
       REPORTS_PATH: ${REPORTS_PATH}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_MODEL: ${LLM_MODEL:-llama-3.3-70b-versatile}
       LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.groq.com/openai/v1}
     volumes:
       - model-data:/app/data
       - reports-data:/app/reports
