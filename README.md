@@ -2,6 +2,10 @@
 
 > **Would you survive the Titanic?** -- An MLOps-powered prediction service showcasing the full lifecycle of a machine learning project in production, with an optional LLMOps interaction layer.
 
+<video controls>
+    <source src="./demo/Titanic%20MLOps%20-%20short%20demo.mp4" type="video/mp4">
+</video>
+
 ## Architecture
 
 ```
