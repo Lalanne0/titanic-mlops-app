@@ -158,7 +158,8 @@ curl -sk -X POST https://localhost/api/chat \
 | `make drift`       | Simulate data drift (500 samples)          |
 | `make reset-data`  | Restore original dataset                   |
 | `make dvc-init`    | Initialize DVC with DagsHub remote         |
-| `make dvc-push`    | Push dataset to DagsHub                    |
+| `make dvc-push`    | Push dataset to DagsHub (needs a token)    |
+| `make dvc-pull`    | Pull dataset from DagsHub (needs a token)  |
 
 ## MLOps vs LLMOps in This Demo
 
@@ -187,7 +188,7 @@ The Copilot uses the OpenAI-compatible API format. By default it points to [Groq
 | Variable       | Required | Default       | Description |
 |----------------|----------|---------------|-------------|
 | `LLM_API_KEY`  | No       | (empty)       | API key. When empty, the Copilot runs in mock mode. Get a free key at https://console.groq.com |
-| `LLM_MODEL`    | No       | `llama-3.3-70b-versatile` | Model identifier. |
+| `LLM_MODEL`    | No       | `qwen/qwen3.8-27b` | Model identifier. |
 | `LLM_BASE_URL` | No       | `https://api.groq.com/openai/v1` | Base URL. Change to use a different OpenAI-compatible provider. |
 
 Mock mode works without an API key and is used in development and CI. It calls the prediction tool with default values to verify the pipeline works end to end.
@@ -196,7 +197,20 @@ Mock mode works without an API key and is used in development and CI. It calls t
 
 The dataset (`data/raw.csv`) is tracked with [DVC](https://dvc.org/) and stored on [DagsHub](https://dagshub.com/).
 
-### Setup
+DVC is entirely optional: the demo runs without it, since `data/raw.csv` ships with the repo.
+
+### Setup (local versioning, no credentials)
+
+```bash
+make dvc-init
+```
+
+This initializes DVC, registers the DagsHub remote, and tracks `data/raw.csv`. No token
+is required. Local commands (`dvc status`, `dvc checkout`, `dvc diff`) work from here.
+
+### Setup (with remote push/pull)
+
+`DAGSHUB_TOKEN` is only needed to push to or pull from the DagsHub remote:
 
 ```bash
 # 1. Get a DagsHub access token from https://dagshub.com/user/settings/tokens
@@ -204,7 +218,7 @@ The dataset (`data/raw.csv`) is tracked with [DVC](https://dvc.org/) and stored 
 # 2. Set the token as an environment variable
 export DAGSHUB_TOKEN=<your-token>
 
-# 3. Initialize DVC with the DagsHub remote
+# 3. Re-run the setup so the credentials land in .dvc/config.local (gitignored)
 make dvc-init
 
 # 4. Push the dataset
@@ -216,7 +230,7 @@ make dvc-push
 - `data/raw.csv` is the actual dataset file (gitignored)
 - `data/raw.csv.dvc` is a small pointer file tracked by git (contains the file hash)
 - DVC stores the full dataset on DagsHub's S3-compatible storage
-- On another machine, run `make dvc-pull` to download the dataset
+- On another machine, run `make dvc-pull` to download the dataset (needs `DAGSHUB_TOKEN`)
 
 ## MLOps Workflow
 
